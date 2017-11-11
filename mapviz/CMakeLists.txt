@@ -87,6 +87,7 @@ file (GLOB UI_FILES
   src/mapviz.ui
   src/pluginselect.ui
   src/rqt_mapviz.ui
+  src/local_xy_dialog.ui
 )
 file (GLOB HEADER_FILES
   include/mapviz/color_button.h
@@ -99,6 +100,7 @@ file (GLOB HEADER_FILES
   include/mapviz/select_frame_dialog.h
   include/mapviz/select_service_dialog.h
   include/mapviz/select_topic_dialog.h
+  include/mapviz/local_xy_dialog.h
   include/mapviz/video_writer.h
   include/mapviz/widgets.h
 )
@@ -112,6 +114,7 @@ file (GLOB SRC_FILES
   src/select_frame_dialog.cpp
   src/select_service_dialog.cpp
   src/select_topic_dialog.cpp
+  src/local_xy_dialog.cpp
   src/video_writer.cpp
 )
 qt5_add_resources(RCC_SRCS src/resources/icons.qrc)
