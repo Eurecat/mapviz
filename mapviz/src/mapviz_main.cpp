@@ -38,8 +38,18 @@ int main(int argc, char **argv)
   // Initialize glut (for displaying text)
   glutInit(&argc, argv);
 
+  bool standalone = true;
+  if (standalone)
+  {
+    // If this Mapviz is running as a standalone application, it needs to init
+    // ROS. If it's running as an rqt plugin, rqt will
+    // take care of that.
+    ros::init(argc, argv, "mapviz", ros::init_options::AnonymousName);
+  }
+
+
   // Start mapviz
-  mapviz::Mapviz mapviz(true, argc, argv);
+  mapviz::Mapviz mapviz(standalone, argc, argv);
   mapviz.show();
 
   return app.exec();

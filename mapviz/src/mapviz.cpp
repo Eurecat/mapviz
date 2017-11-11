@@ -70,6 +70,8 @@
 #include <QtGui/QtGui>
 
 #include <image_transport/image_transport.h>
+#include <mapviz/local_xy_dialog.h>
+#include <yaml-cpp/yaml.h>
 
 namespace mapviz
 {
@@ -175,6 +177,8 @@ Mapviz::Mapviz(bool is_standalone, int argc, char** argv, QWidget *parent, Qt::W
   connect(stop_button_, SIGNAL(clicked()), this, SLOT(StopRecord()));
   connect(screenshot_button_, SIGNAL(clicked()), this, SLOT(Screenshot()));
 
+  connect(ui_.actionSet_local_xy_origin, SIGNAL(triggered()), this, SLOT(ChangeLocalXY()));
+
   // Use a separate thread for writing video files so that it won't cause
   // lag on the main thread.
   // It's ok for the video writer to be a pointer that we intantiate here and
@@ -217,16 +221,16 @@ void Mapviz::Initialize()
   {
     if (is_standalone_)
     {
-      // If this Mapviz is running as a standalone application, it needs to init
-      // ROS and start spinning.  If it's running as an rqt plugin, rqt will
-      // take care of that.
-      ros::init(argc_, argv_, "mapviz", ros::init_options::AnonymousName);
+      // If this Mapviz is running as a standalone application, it needs to start spinning.
+      // If it's running as an rqt plugin, rqt will take care of that.
 
       spin_timer_.start(30);
       connect(&spin_timer_, SIGNAL(timeout()), this, SLOT(SpinOnce()));
     }
 
     node_ = new ros::NodeHandle("~");
+
+    local_xy_publisher_ = node_->advertise<geometry_msgs::PoseStamped>("/local_xy_origin", 2, true );
 
     // Create a sub-menu that lists all available Image Transports
     image_transport::ImageTransport it(*node_);
@@ -311,6 +315,8 @@ void Mapviz::Initialize()
       profile_timer_.start(2000);
       connect(&profile_timer_, SIGNAL(timeout()), this, SLOT(HandleProfileTimer()));
     }
+
+    QTimer::singleShot(3000, this, SLOT(CheckLocalXYTimer()));
 
     initialized_ = true;
   }
@@ -717,6 +723,15 @@ void Mapviz::Open(const std::string& filename)
         }
       }
     }
+
+    if (swri_yaml_util::FindValue(doc, "local_xy_origin"))
+    {
+      const YAML::Node& local_xy = doc["local_xy_origin"];
+      local_xy["latitude"] >> local_xy_pose_.pose.position.y;
+      local_xy["longitude"] >> local_xy_pose_.pose.position.x;
+      local_xy["altitude"] >> local_xy_pose_.pose.position.z;
+      local_xy["frame"] >> local_xy_pose_.header.frame_id;
+    }
   }
   catch (const YAML::ParserException& e)
   {
@@ -809,6 +824,16 @@ void Mapviz::Save(const std::string& filename)
     }
 
     out << YAML::EndSeq;
+  }
+
+  {
+    out << YAML::Key << "local_xy_origin"<< YAML::Value << YAML::BeginMap;
+
+    out << YAML::Key << "latitude" << YAML::Value << local_xy_util_.ReferenceLatitude();
+    out << YAML::Key << "longitude" << YAML::Value << local_xy_util_.ReferenceLongitude();
+    out << YAML::Key << "altitude" << YAML::Value << local_xy_util_.ReferenceAltitude();
+    out << YAML::Key << "frame" << YAML::Value << local_xy_util_.Frame();
+    out << YAML::EndMap;
   }
 
   out << YAML::EndMap;
@@ -1509,4 +1534,46 @@ void Mapviz::HandleProfileTimer()
     }
   }
 }
+
+void Mapviz::ChangeLocalXY()
+{  
+  if(local_xy_util_.Initialized())
+  {
+    local_xy_pose_.pose.position.x = local_xy_util_.ReferenceLongitude();
+    local_xy_pose_.pose.position.y = local_xy_util_.ReferenceLatitude();
+    local_xy_pose_.pose.position.z = local_xy_util_.ReferenceAltitude();
+    local_xy_pose_.header.frame_id = local_xy_util_.Frame();
+  }
+  else{
+    local_xy_pose_.header.frame_id = ui_.fixedframe->currentText().toStdString();
+  }
+
+  LocalXYDialog dialog(tf_, local_xy_pose_, this);
+
+  if (dialog.exec() == QDialog::Accepted)
+  {
+    local_xy_pose_ = dialog.getMsg();
+    local_xy_publisher_.publish( local_xy_pose_ );
+  } else {
+
+  }
+}
+
+void Mapviz::CheckLocalXYTimer()
+{
+  if (!local_xy_util_.Initialized())
+  {
+    QMessageBox msgBox;
+    msgBox.setText("No local_xy_origin");
+    msgBox.setInformativeText("Do you want to set it manually?");
+    msgBox.setStandardButtons(QMessageBox::Yes | QMessageBox::No );
+    msgBox.setDefaultButton(QMessageBox::Yes);
+    int ret = msgBox.exec();
+    if( ret == QMessageBox::Yes )
+    {
+      ChangeLocalXY();
+    }
+  }
+}
+
 }

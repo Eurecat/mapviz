@@ -58,7 +58,6 @@
 #include <ros/ros.h>
 #include <pluginlib/class_loader.h>
 #include <tf/transform_listener.h>
-#include <yaml-cpp/yaml.h>
 #include <GL/glut.h>
 #include <std_srvs/Empty.h>
 
@@ -121,6 +120,8 @@ namespace mapviz
     void Hover(double x, double y, double scale);
     void Recenter();
     void HandleProfileTimer();
+    void ChangeLocalXY();
+    void CheckLocalXYTimer();
 
   Q_SIGNALS:
     /**
@@ -172,6 +173,7 @@ namespace mapviz
 
     ros::NodeHandle* node_;
     ros::ServiceServer add_display_srv_;
+    ros::Publisher local_xy_publisher_;
     boost::shared_ptr<tf::TransformListener> tf_;
     swri_transform_util::TransformManager tf_manager_;
 
@@ -197,6 +199,9 @@ namespace mapviz
 
     void ClearDisplays();
     void AdjustWindowSize();
+
+    swri_transform_util::LocalXyWgs84Util local_xy_util_;
+    geometry_msgs::PoseStamped local_xy_pose_;
 
     virtual void showEvent(QShowEvent* event);
     virtual void closeEvent(QCloseEvent* event);

@@ -31,7 +31,7 @@
      <x>0</x>
      <y>0</y>
      <width>600</width>
-     <height>27</height>
+     <height>19</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -62,8 +62,15 @@
     <addaction name="actionShow_Capture_Tools"/>
     <addaction name="separator"/>
    </widget>
+   <widget class="QMenu" name="menuEdit">
+    <property name="title">
+     <string>Edit</string>
+    </property>
+    <addaction name="actionSet_local_xy_origin"/>
+   </widget>
    <addaction name="menuFile"/>
    <addaction name="menu_View"/>
+   <addaction name="menuEdit"/>
   </widget>
   <widget class="QStatusBar" name="statusbar">
    <property name="enabled">
@@ -471,6 +478,11 @@
     <string>Image Transport</string>
    </property>
   </action>
+  <action name="actionSet_local_xy_origin">
+   <property name="text">
+    <string>Set local_xy_origin</string>
+   </property>
+  </action>
  </widget>
  <customwidgets>
   <customwidget>
@@ -493,9 +505,7 @@
   <tabstop>addbutton</tabstop>
   <tabstop>removebutton</tabstop>
  </tabstops>
- <resources>
-  <include location="resources/icons.qrc"/>
- </resources>
+ <resources/>
  <connections>
   <connection>
    <sender>addbutton</sender>
