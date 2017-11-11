@@ -107,49 +107,41 @@ void LocalXYDialog::NavSatCallback(const sensor_msgs::NavSatFixConstPtr navsat)
   tf::StampedTransform transform;
   tf_->lookupTransform(fixed_frame, gps_frame, navsat->header.stamp, transform);
 
-  {
-    tf::Matrix3x3 m(transform.getRotation());
-    double roll, pitch, yaw;
-    m.getRPY(roll, pitch, yaw);
+  double x = -transform.getOrigin().x();
+  double y = -transform.getOrigin().y();
 
-    double x = -transform.getOrigin().x();
-    double y = -transform.getOrigin().y();
+  const double TO_RAD = M_PI / 180.0;
+  const double TO_GED = 180.0 / M_PI;
 
-    const double TO_RAD = M_PI / 180.0;
-    const double TO_GED = 180.0 / M_PI;
+  double reference_latitude = navsat->latitude;
+  double reference_longitude = navsat->longitude;
+  double depth = navsat->altitude;
 
-    double reference_angle =  0.0;
-    double reference_latitude = navsat->latitude;
-    double reference_longitude = navsat->longitude;
+  double p = _earth_eccentricity * std::sin(reference_latitude*TO_RAD);
+  p = 1.0 - p * p;
 
-    ROS_INFO("received");
-    reference_angle = swri_math_util::WrapRadians(reference_angle, 0);
+  double rho_e = _earth_equator_radius *
+      (1.0 - _earth_eccentricity * _earth_eccentricity) / (std::sqrt(p) * p);
+  double rho_n = _earth_equator_radius / std::sqrt(p);
 
-    double cos_angle = std::cos(reference_angle);
-    double sin_angle = std::sin(reference_angle);
+  double rho_lat = rho_e - depth;
+  double rho_lon = (rho_n - depth) * std::cos(reference_latitude*TO_RAD);
 
-    double depth = navsat->altitude;
+  // KEEP for future improvements
+  // double reference_angle =  0.0; // keep for future improvements
+  // double cos_angle = std::cos(reference_angle);
+  // double sin_angle = std::sin(reference_angle);
+  // double dLon = cos_angle * x - sin_angle * y;
+  // double dLat = sin_angle * x + cos_angle * y;
+  // double rlat = (dLat / rho_lat)*TO_GED ;
+  // double rlon = (dLon / rho_lon)*TO_GED ;
 
-    double p = _earth_eccentricity * std::sin(reference_latitude*TO_RAD);
-    p = 1.0 - p * p;
+  double rlat = (y / rho_lat) * TO_GED ;
+  double rlon = (x / rho_lon) * TO_GED ;
 
-    double rho_e = _earth_equator_radius *
-        (1.0 - _earth_eccentricity * _earth_eccentricity) / (std::sqrt(p) * p);
-    double rho_n = _earth_equator_radius / std::sqrt(p);
-
-    double rho_lat = rho_e - depth;
-    double rho_lon = (rho_n - depth) * std::cos(reference_latitude*TO_RAD);
-
-    double dLon = cos_angle * x - sin_angle * y;
-    double dLat = sin_angle * x + cos_angle * y;
-    double rlat = (dLat / rho_lat) ;
-    double rlon = (dLon / rho_lon) ;
-
-    ui_.latitude->setValue( rlat*TO_GED + reference_latitude );
-    ui_.longitude->setValue( rlon*TO_GED + reference_longitude );
-    ui_.altitude->setValue( depth );
-  }
-
+  ui_.latitude->setValue( rlat + reference_latitude );
+  ui_.longitude->setValue( rlon + reference_longitude );
+  ui_.altitude->setValue( depth );
 }
 
 void LocalXYDialog::SelectFixedFramePushed()
