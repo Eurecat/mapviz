@@ -230,8 +230,6 @@ void Mapviz::Initialize()
 
     node_ = new ros::NodeHandle("~");
 
-    local_xy_publisher_ = node_->advertise<geometry_msgs::PoseStamped>("/local_xy_origin", 2, true );
-
     // Create a sub-menu that lists all available Image Transports
     image_transport::ImageTransport it(*node_);
     std::vector<std::string> transports = it.getLoadableTransports();
@@ -1553,6 +1551,8 @@ void Mapviz::ChangeLocalXY()
   if (dialog.exec() == QDialog::Accepted)
   {
     local_xy_pose_ = dialog.getMsg();
+      
+    local_xy_publisher_ = node_->advertise<geometry_msgs::PoseStamped>("/local_xy_origin", 1, true );
     local_xy_publisher_.publish( local_xy_pose_ );
   } else {
 
