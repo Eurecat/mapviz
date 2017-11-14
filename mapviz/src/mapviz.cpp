@@ -179,6 +179,8 @@ Mapviz::Mapviz(bool is_standalone, int argc, char** argv, QWidget *parent, Qt::W
 
   connect(ui_.actionSet_local_xy_origin, SIGNAL(triggered()), this, SLOT(ChangeLocalXY()));
 
+  connect(ui_.actionReset_Transform_Manager, SIGNAL(triggered()), this, SLOT(ResetTransformManager()));
+
   // Use a separate thread for writing video files so that it won't cause
   // lag on the main thread.
   // It's ok for the video writer to be a pointer that we intantiate here and
@@ -248,7 +250,10 @@ void Mapviz::Initialize()
     connect(group, SIGNAL(triggered(QAction*)), this, SLOT(SetImageTransport(QAction*)));
 
     tf_ = boost::make_shared<tf::TransformListener>();
-    tf_manager_.Initialize(tf_);
+    tf_manager_ = boost::make_shared<swri_transform_util::TransformManager>();
+    tf_manager_->Initialize(tf_);
+
+    local_xy_util_ = boost::make_shared<swri_transform_util::LocalXyWgs84Util>();
 
     loader_ = new pluginlib::ClassLoader<MapvizPlugin>(
         "mapviz", "mapviz::MapvizPlugin");
@@ -829,10 +834,10 @@ void Mapviz::Save(const std::string& filename)
   {
     out << YAML::Key << "local_xy_origin"<< YAML::Value << YAML::BeginMap;
 
-    out << YAML::Key << "latitude" << YAML::Value << local_xy_util_.ReferenceLatitude();
-    out << YAML::Key << "longitude" << YAML::Value << local_xy_util_.ReferenceLongitude();
-    out << YAML::Key << "altitude" << YAML::Value << local_xy_util_.ReferenceAltitude();
-    out << YAML::Key << "frame" << YAML::Value << local_xy_util_.Frame();
+    out << YAML::Key << "latitude" << YAML::Value << local_xy_util_->ReferenceLatitude();
+    out << YAML::Key << "longitude" << YAML::Value << local_xy_util_->ReferenceLongitude();
+    out << YAML::Key << "altitude" << YAML::Value << local_xy_util_->ReferenceAltitude();
+    out << YAML::Key << "frame" << YAML::Value << local_xy_util_->Frame();
     out << YAML::EndMap;
   }
 
@@ -1069,10 +1074,10 @@ void Mapviz::Hover(double x, double y, double scale)
     xy_pos_label_->update();
     
     swri_transform_util::Transform transform;
-    if (tf_manager_.SupportsTransform(
+    if (tf_manager_->SupportsTransform(
            swri_transform_util::_wgs84_frame, 
            ui_.fixedframe->currentText().toStdString()) &&
-        tf_manager_.GetTransform(
+        tf_manager_->GetTransform(
            swri_transform_util::_wgs84_frame, 
            ui_.fixedframe->currentText().toStdString(),
            transform))
@@ -1139,7 +1144,7 @@ MapvizPluginPtr Mapviz::CreateNewDisplay(
   config_item->SetWidget(plugin->GetConfigWidget(this));
   plugin->SetIcon(config_item->ui_.icon);
   
-  plugin->Initialize(tf_, canvas_);
+  plugin->Initialize(tf_, tf_manager_, canvas_);
   plugin->SetType(real_type.c_str());
   plugin->SetName(name);
   plugin->SetNode(*node_);
@@ -1537,12 +1542,12 @@ void Mapviz::HandleProfileTimer()
 
 void Mapviz::ChangeLocalXY()
 {  
-  if(local_xy_util_.Initialized())
+  if(local_xy_util_->Initialized())
   {
-    local_xy_pose_.pose.position.x = local_xy_util_.ReferenceLongitude();
-    local_xy_pose_.pose.position.y = local_xy_util_.ReferenceLatitude();
-    local_xy_pose_.pose.position.z = local_xy_util_.ReferenceAltitude();
-    local_xy_pose_.header.frame_id = local_xy_util_.Frame();
+    local_xy_pose_.pose.position.x = local_xy_util_->ReferenceLongitude();
+    local_xy_pose_.pose.position.y = local_xy_util_->ReferenceLatitude();
+    local_xy_pose_.pose.position.z = local_xy_util_->ReferenceAltitude();
+    local_xy_pose_.header.frame_id = local_xy_util_->Frame();
   }
   else{
     local_xy_pose_.header.frame_id = ui_.fixedframe->currentText().toStdString();
@@ -1552,6 +1557,10 @@ void Mapviz::ChangeLocalXY()
 
   if (dialog.exec() == QDialog::Accepted)
   {
+    if( local_xy_util_->Initialized() )
+    {
+      ResetTransformManager();
+    }
     local_xy_pose_ = dialog.getMsg();
     local_xy_publisher_.publish( local_xy_pose_ );
   } else {
@@ -1561,7 +1570,7 @@ void Mapviz::ChangeLocalXY()
 
 void Mapviz::CheckLocalXYTimer()
 {
-  if (!local_xy_util_.Initialized())
+  if (!local_xy_util_->Initialized())
   {
     QMessageBox msgBox;
     msgBox.setText("No local_xy_origin");
@@ -1572,6 +1581,23 @@ void Mapviz::CheckLocalXYTimer()
     if( ret == QMessageBox::Yes )
     {
       ChangeLocalXY();
+    }
+  }
+}
+
+void Mapviz::ResetTransformManager()
+{
+  tf_ = boost::make_shared<tf::TransformListener>();
+  tf_manager_ = boost::make_shared<swri_transform_util::TransformManager>();
+  tf_manager_->Initialize(tf_);
+  local_xy_util_ = boost::make_shared<swri_transform_util::LocalXyWgs84Util>();
+
+  for (auto& display: plugins_)
+  {
+    MapvizPluginPtr plugin = display.second;
+    if (plugin)
+    {
+      plugin->Initialize(tf_, tf_manager_, canvas_);
     }
   }
 }

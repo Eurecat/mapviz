@@ -245,7 +245,7 @@ namespace mapviz_plugins
 
     QPointF point = event->localPos();
     stu::Transform transform;
-    if (tf_manager_.GetTransform(target_frame_, stu::_wgs84_frame, transform))
+    if (tf_manager_->GetTransform(target_frame_, stu::_wgs84_frame, transform))
     {
       for (size_t i = 0; i < waypoints_.size(); i++)
       {
@@ -301,7 +301,7 @@ namespace mapviz_plugins
     {
       QPointF point = event->localPos();
       stu::Transform transform;
-      if (tf_manager_.GetTransform(stu::_wgs84_frame, target_frame_, transform))
+      if (tf_manager_->GetTransform(stu::_wgs84_frame, target_frame_, transform))
       {
         QPointF transformed = map_canvas_->MapGlCoordToFixedFrame(point);
         tf::Vector3 position(transformed.x(), transformed.y(), 0.0);
@@ -332,7 +332,7 @@ namespace mapviz_plugins
 
         stu::Transform transform;
         tf::Vector3 position(transformed.x(), transformed.y(), 0.0);
-        if (tf_manager_.GetTransform(stu::_wgs84_frame, target_frame_, transform))
+        if (tf_manager_->GetTransform(stu::_wgs84_frame, target_frame_, transform))
         {
           position = transform * position;
 
@@ -355,7 +355,7 @@ namespace mapviz_plugins
     {
       QPointF point = event->localPos();
       stu::Transform transform;
-      if (tf_manager_.GetTransform(stu::_wgs84_frame, target_frame_, transform))
+      if (tf_manager_->GetTransform(stu::_wgs84_frame, target_frame_, transform))
       {
         QPointF transformed = map_canvas_->MapGlCoordToFixedFrame(point);
         tf::Vector3 position(transformed.x(), transformed.y(), 0.0);
@@ -373,7 +373,7 @@ namespace mapviz_plugins
   void PlanRoutePlugin::Draw(double x, double y, double scale)
   {
     stu::Transform transform;
-    if (tf_manager_.GetTransform(target_frame_, stu::_wgs84_frame, transform))
+    if (tf_manager_->GetTransform(target_frame_, stu::_wgs84_frame, transform))
     {
       if (!failed_service_)
       {
@@ -428,7 +428,7 @@ namespace mapviz_plugins
     painter->setFont(QFont("DejaVu Sans Mono", 7));
 
     stu::Transform transform;
-    if (tf_manager_.GetTransform(target_frame_, stu::_wgs84_frame, transform))
+    if (tf_manager_->GetTransform(target_frame_, stu::_wgs84_frame, transform))
     {
       for (size_t i = 0; i < waypoints_.size(); i++)
       {

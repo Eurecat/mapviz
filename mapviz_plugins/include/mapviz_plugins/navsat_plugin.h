@@ -82,7 +82,7 @@ namespace mapviz_plugins
     ros::Subscriber navsat_sub_;
     bool has_message_;
 
-    swri_transform_util::LocalXyWgs84Util local_xy_util_;
+    swri_transform_util::LocalXyWgs84UtilPtr local_xy_util_;
 
     void NavSatFixCallback(const sensor_msgs::NavSatFixConstPtr navsat);
   };

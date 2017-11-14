@@ -114,7 +114,7 @@ namespace mapviz_plugins
   void NavSatPlugin::NavSatFixCallback(
       const sensor_msgs::NavSatFixConstPtr navsat)
   {
-    if (!local_xy_util_.Initialized())
+    if ( !local_xy_util_ || !local_xy_util_->Initialized())
     {
       return;
     }
@@ -129,13 +129,13 @@ namespace mapviz_plugins
 
     double x;
     double y;
-    local_xy_util_.ToLocalXy(navsat->latitude, navsat->longitude, x, y);
+    local_xy_util_->ToLocalXy(navsat->latitude, navsat->longitude, x, y);
 
     stamped_point.point = tf::Point(x, y, navsat->altitude);
 
     stamped_point.orientation = tf::createQuaternionFromYaw(0.0);
 
-    stamped_point.source_frame = local_xy_util_.Frame();
+    stamped_point.source_frame = local_xy_util_->Frame();
 
     if (points_.empty() ||
         stamped_point.point.distance(points_.back().point) >=
@@ -208,6 +208,7 @@ namespace mapviz_plugins
   {
     canvas_ = canvas;
     SetColor(ui_.color->color());
+    local_xy_util_ = boost::make_shared<swri_transform_util::LocalXyWgs84Util>();
     return true;
   }
 
