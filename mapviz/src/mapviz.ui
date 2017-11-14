@@ -64,8 +64,9 @@
    </widget>
    <widget class="QMenu" name="menuEdit">
     <property name="title">
-     <string>Edit</string>
+     <string>Tranforms</string>
     </property>
+    <addaction name="actionReset_Transform_Manager"/>
     <addaction name="actionSet_local_xy_origin"/>
    </widget>
    <addaction name="menuFile"/>
@@ -481,6 +482,11 @@
   <action name="actionSet_local_xy_origin">
    <property name="text">
     <string>Set local_xy_origin</string>
+   </property>
+  </action>
+  <action name="actionReset_Transform_Manager">
+   <property name="text">
+    <string>Reset Transform Manager</string>
    </property>
   </action>
  </widget>

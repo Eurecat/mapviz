@@ -117,7 +117,7 @@ namespace mapviz_plugins
 
   void GpsPlugin::GPSFixCallback(const gps_common::GPSFixConstPtr& gps)
   {
-    if (!local_xy_util_.Initialized())
+    if ( !local_xy_util_ || !local_xy_util_->Initialized())
     {
       return;
     }
@@ -129,10 +129,10 @@ namespace mapviz_plugins
 
     StampedPoint stamped_point;
     stamped_point.stamp = gps->header.stamp;
-    stamped_point.source_frame = local_xy_util_.Frame();
+    stamped_point.source_frame = local_xy_util_->Frame();
     double x;
     double y;
-    local_xy_util_.ToLocalXy(gps->latitude, gps->longitude, x, y);
+    local_xy_util_->ToLocalXy(gps->latitude, gps->longitude, x, y);
 
     stamped_point.point = tf::Point(x, y, gps->altitude);
     lap_checked_ = ui_.show_laps->isChecked();
@@ -187,7 +187,7 @@ namespace mapviz_plugins
   {
     canvas_ = canvas;
     SetColor(ui_.color->color());
-
+    local_xy_util_ = boost::make_shared<swri_transform_util::LocalXyWgs84Util>();
     return true;
   }
 

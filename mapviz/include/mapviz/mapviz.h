@@ -122,6 +122,7 @@ namespace mapviz
     void HandleProfileTimer();
     void ChangeLocalXY();
     void CheckLocalXYTimer();
+    void ResetTransformManager();
 
   Q_SIGNALS:
     /**
@@ -175,7 +176,8 @@ namespace mapviz
     ros::ServiceServer add_display_srv_;
     ros::Publisher local_xy_publisher_;
     boost::shared_ptr<tf::TransformListener> tf_;
-    swri_transform_util::TransformManager tf_manager_;
+    boost::shared_ptr<swri_transform_util::TransformManager> tf_manager_;
+    boost::shared_ptr<swri_transform_util::LocalXyWgs84Util> local_xy_util_;
 
     pluginlib::ClassLoader<MapvizPlugin>* loader_;
     MapCanvas* canvas_;
@@ -200,7 +202,6 @@ namespace mapviz
     void ClearDisplays();
     void AdjustWindowSize();
 
-    swri_transform_util::LocalXyWgs84Util local_xy_util_;
     geometry_msgs::PoseStamped local_xy_pose_;
 
     virtual void showEvent(QShowEvent* event);

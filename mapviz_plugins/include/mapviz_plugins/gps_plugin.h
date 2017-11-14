@@ -85,7 +85,7 @@ namespace mapviz_plugins
     ros::Subscriber gps_sub_;
     bool has_message_;
 
-    swri_transform_util::LocalXyWgs84Util local_xy_util_;
+    swri_transform_util::LocalXyWgs84UtilPtr local_xy_util_;
 
     void GPSFixCallback(const gps_common::GPSFixConstPtr& gps);
   };
