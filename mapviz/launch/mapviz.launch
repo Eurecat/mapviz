@@ -1,6 +1,6 @@
 <launch>
 
-  <param name="use_sim_time" value="true"/>
+  <param name="use_sim_time" value="false"/>
 
   <env name="ROSCONSOLE_FORMAT" value="[${thread}] [${node}/${function}:${line}]: ${message}"/>
 
@@ -12,7 +12,7 @@
 
   <node pkg="swri_transform_util" type="initialize_origin.py" name="initialize_origin" >
     <param name="local_xy_frame" value="/far_field"/>
-    <param name="local_xy_origin" value="auto"/>
+    <param name="local_xy_origin" value="toscana"/>
     <rosparam param="local_xy_origins">
       [{ name: swri,
          latitude: 29.45196669,
@@ -20,10 +20,10 @@
          altitude: 233.719,
          heading: 0.0},
          
-       { name: back_40,
-         latitude: 29.447507,
-         longitude: -98.629367,
-         altitude: 200.0,
+       { name: toscana,
+         latitude: 43.5952733333,
+         longitude: 10.5705966667,
+         altitude: 100.0,
          heading: 0.0}]
     </rosparam>
   </node>
