@@ -114,7 +114,7 @@ namespace mapviz_plugins
   void NavSatPlugin::NavSatFixCallback(
       const sensor_msgs::NavSatFixConstPtr navsat)
   {
-    if (!local_xy_util_.Initialized())
+    if (!tf_manager_->LocalXyUtil()->Initialized())
     {
       return;
     }
@@ -129,13 +129,30 @@ namespace mapviz_plugins
 
     double x;
     double y;
-    local_xy_util_.ToLocalXy(navsat->latitude, navsat->longitude, x, y);
+    tf_manager_->LocalXyUtil()->ToLocalXy(navsat->latitude, navsat->longitude, x, y);
 
     stamped_point.point = tf::Point(x, y, navsat->altitude);
-    stamped_point.orientation = tf::createQuaternionFromYaw(0.0);
-    stamped_point.source_frame = local_xy_util_.Frame();
 
-    pushPoint( std::move(stamped_point ) );
+    stamped_point.orientation = tf::createQuaternionFromYaw(0.0);
+
+    stamped_point.source_frame = tf_manager_->LocalXyUtil()->Frame();
+
+    if (points_.empty() ||
+        stamped_point.point.distance(points_.back().point) >=
+            position_tolerance_)
+    {
+      points_.push_back(stamped_point);
+    }
+
+    if (buffer_size_ > 0)
+    {
+      while (static_cast<int>(points_.size()) > buffer_size_)
+      {
+        points_.pop_front();
+      }
+    }
+
+    cur_point_ = stamped_point;
   }
 
   void NavSatPlugin::PrintError(const std::string& message)
@@ -188,9 +205,8 @@ namespace mapviz_plugins
     {
       std::string color;
       node["color"] >> color;
-      QColor qcolor(color.c_str());
-      SetColor(qcolor);
-      ui_.color->setColor(qcolor);
+      SetColor(QColor(color.c_str()));
+      ui_.color->setColor(color_);
     }
 
     if (node["draw_style"])
@@ -200,28 +216,26 @@ namespace mapviz_plugins
 
       if (draw_style == "lines")
       {
+        draw_style_ = LINES;
         ui_.drawstyle->setCurrentIndex(0);
-        SetDrawStyle( LINES );
       }
       else if (draw_style == "points")
       {
+        draw_style_ = POINTS;
         ui_.drawstyle->setCurrentIndex(1);
-        SetDrawStyle( POINTS );
       }
     }
 
     if (node["position_tolerance"])
     {
-      double position_tolerance;
-      node["position_tolerance"] >> position_tolerance;
-      PositionToleranceChanged(position_tolerance);
+      node["position_tolerance"] >> position_tolerance_;
+      ui_.positiontolerance->setValue(position_tolerance_);
     }
 
     if (node["buffer_size"])
     {
-      double buffer_size;
-      node["buffer_size"] >> buffer_size;
-      BufferSizeChanged(buffer_size);
+      node["buffer_size"] >> buffer_size_;
+      ui_.buffersize->setValue(buffer_size_);
     }
 
     TopicEdited();
@@ -239,8 +253,8 @@ namespace mapviz_plugins
     emitter << YAML::Key << "draw_style" << YAML::Value << draw_style;
 
     emitter << YAML::Key << "position_tolerance" <<
-               YAML::Value << positionTolerance();
+               YAML::Value << position_tolerance_;
 
-    emitter << YAML::Key << "buffer_size" << YAML::Value << bufferSize();
+    emitter << YAML::Key << "buffer_size" << YAML::Value << buffer_size_;
   }
 }
