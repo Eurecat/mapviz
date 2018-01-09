@@ -163,6 +163,8 @@ namespace mapviz_plugins
                      this,
                      SLOT(ResetTransformedPointClouds()));
 
+    QObject::connect(this,SIGNAL(VisibleChanged(bool)),this,SLOT(SetSubscription(bool)));
+
     PrintInfo("Constructed PointCloud2Plugin");
   }
 
@@ -211,6 +213,20 @@ namespace mapviz_plugins
       scan.transformed = false;
       scan.gl_color.clear();
       scan.gl_point.clear();
+    }
+  }
+
+  void PointCloud2Plugin::SetSubscription(bool subscribe)
+  {
+    pc2_sub_.shutdown();
+
+    if (subscribe && !topic_.empty())
+    {
+      pc2_sub_ = node_.subscribe(topic_, 10, &PointCloud2Plugin::PointCloud2Callback, this);
+      new_topic_ = true;
+      need_new_list_ = true;
+      max_.clear();
+      min_.clear();
     }
   }
 
@@ -337,21 +353,8 @@ namespace mapviz_plugins
       has_message_ = false;
       PrintWarning("No messages received.");
 
-      pc2_sub_.shutdown();
-
       topic_ = topic;
-      if (!topic.empty())
-      {
-        pc2_sub_ = node_.subscribe(topic_,
-                                   100,
-                                   &PointCloud2Plugin::PointCloud2Callback,
-                                   this);
-        new_topic_ = true;
-        need_new_list_ = true;
-        max_.clear();
-        min_.clear();
-        ROS_INFO("Subscribing to %s", topic_.c_str());
-      }
+      SetSubscription(this->Visible());
     }
   }
 
