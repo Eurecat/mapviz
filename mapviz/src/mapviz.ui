@@ -31,7 +31,7 @@
      <x>0</x>
      <y>0</y>
      <width>600</width>
-     <height>27</height>
+     <height>19</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -62,8 +62,15 @@
     <addaction name="actionShow_Capture_Tools"/>
     <addaction name="separator"/>
    </widget>
+   <widget class="QMenu" name="menuTransform">
+    <property name="title">
+     <string>Transform</string>
+    </property>
+    <addaction name="actionLocalXY_from_GPS"/>
+   </widget>
    <addaction name="menuFile"/>
    <addaction name="menu_View"/>
+   <addaction name="menuTransform"/>
   </widget>
   <widget class="QStatusBar" name="statusbar">
    <property name="enabled">
@@ -471,6 +478,11 @@
     <string>Image Transport</string>
    </property>
   </action>
+  <action name="actionLocalXY_from_GPS">
+   <property name="text">
+    <string>LocalXY from GPS</string>
+   </property>
+  </action>
  </widget>
  <customwidgets>
   <customwidget>
@@ -493,9 +505,7 @@
   <tabstop>addbutton</tabstop>
   <tabstop>removebutton</tabstop>
  </tabstops>
- <resources>
-  <include location="resources/icons.qrc"/>
- </resources>
+ <resources/>
  <connections>
   <connection>
    <sender>addbutton</sender>

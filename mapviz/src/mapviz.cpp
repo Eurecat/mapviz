@@ -70,6 +70,7 @@
 #include <QtGui/QtGui>
 
 #include <image_transport/image_transport.h>
+#include "mapviz/local_xy_dialog.h"
 
 namespace mapviz
 {
@@ -78,22 +79,22 @@ const QString Mapviz::MAPVIZ_CONFIG_FILE = "/.mapviz_config";
 const std::string Mapviz::IMAGE_TRANSPORT_PARAM = "image_transport";
 
 Mapviz::Mapviz(bool is_standalone, int argc, char** argv, QWidget *parent, Qt::WindowFlags flags) :
-    QMainWindow(parent, flags),
-    xy_pos_label_(new QLabel("fixed: 0.0,0.0")),
-    lat_lon_pos_label_(new QLabel("lat/lon: 0.0,0.0")),
-    argc_(argc),
-    argv_(argv),
-    is_standalone_(is_standalone),
-    initialized_(false),
-    force_720p_(false),
-    force_480p_(false),
-    resizable_(true),
-    background_(Qt::gray),
-    capture_directory_("~"),
-    vid_writer_(NULL),
-    updating_frames_(false),
-    node_(NULL),
-    canvas_(NULL)
+  QMainWindow(parent, flags),
+  xy_pos_label_(new QLabel("fixed: 0.0,0.0")),
+  lat_lon_pos_label_(new QLabel("lat/lon: 0.0,0.0")),
+  argc_(argc),
+  argv_(argv),
+  is_standalone_(is_standalone),
+  initialized_(false),
+  force_720p_(false),
+  force_480p_(false),
+  resizable_(true),
+  background_(Qt::gray),
+  capture_directory_("~"),
+  vid_writer_(NULL),
+  updating_frames_(false),
+  node_(NULL),
+  canvas_(NULL)
 {
   ui_.setupUi(this);
 
@@ -175,6 +176,8 @@ Mapviz::Mapviz(bool is_standalone, int argc, char** argv, QWidget *parent, Qt::W
   connect(stop_button_, SIGNAL(clicked()), this, SLOT(StopRecord()));
   connect(screenshot_button_, SIGNAL(clicked()), this, SLOT(Screenshot()));
 
+  connect(ui_.actionLocalXY_from_GPS, SIGNAL(triggered()), this, SLOT(ChangeLocalXY()));
+
   // Use a separate thread for writing video files so that it won't cause
   // lag on the main thread.
   // It's ok for the video writer to be a pointer that we intantiate here and
@@ -235,7 +238,7 @@ void Mapviz::Initialize()
     for (std::vector<std::string>::iterator iter = transports.begin(); iter != transports.end(); iter++)
     {
       QString transport = QString::fromStdString(*iter).replace(
-          QString::fromStdString(IMAGE_TRANSPORT_PARAM) + "/", "");
+            QString::fromStdString(IMAGE_TRANSPORT_PARAM) + "/", "");
       QAction* action = image_transport_menu_->addAction(transport);
       action->setCheckable(true);
       group->addAction(action);
@@ -248,7 +251,7 @@ void Mapviz::Initialize()
     tf_manager_->Initialize(tf_);
 
     loader_ = new pluginlib::ClassLoader<MapvizPlugin>(
-        "mapviz", "mapviz::MapvizPlugin");
+          "mapviz", "mapviz::MapvizPlugin");
 
     std::vector<std::string> plugins = loader_->getDeclaredClasses();
     for (unsigned int i = 0; i < plugins.size(); i++)
@@ -337,7 +340,7 @@ void Mapviz::UpdateFrames()
   tf_->getFrameStrings(frames);
   std::sort(frames.begin(), frames.end());
 
-  if (ui_.fixedframe->count() >= 0 && 
+  if (ui_.fixedframe->count() >= 0 &&
       static_cast<size_t>(ui_.fixedframe->count()) == frames.size())
   {
     bool changed = false;
@@ -511,7 +514,7 @@ void Mapviz::Open(const std::string& filename)
   if (last_slash != std::string::npos && last_slash != filename.size() - 1)
   {
     title = filename.substr(last_slash + 1) + " (" +
-            filename.substr(0, last_slash + 1) + ")";
+        filename.substr(0, last_slash + 1) + ")";
   }
   else
   {
@@ -885,7 +888,7 @@ void Mapviz::SaveConfig()
     if (last_slash != std::string::npos && last_slash != path.size() - 1)
     {
       title = path.substr(last_slash + 1) + " (" +
-              path.substr(0, last_slash + 1) + ")";
+          path.substr(0, last_slash + 1) + ")";
     }
     else
     {
@@ -940,8 +943,8 @@ void Mapviz::SelectNewDisplay()
 }
 
 bool Mapviz::AddDisplay(
-      AddMapvizDisplay::Request& req, 
-      AddMapvizDisplay::Response& resp)
+    AddMapvizDisplay::Request& req,
+    AddMapvizDisplay::Response& resp)
 {
   std::map<std::string, std::string> properties;
   for (auto& property: req.properties)
@@ -992,8 +995,8 @@ bool Mapviz::AddDisplay(
   
   try
   {
-    MapvizPluginPtr plugin = 
-      CreateNewDisplay(req.name, req.type, req.visible, false, req.draw_order);
+    MapvizPluginPtr plugin =
+        CreateNewDisplay(req.name, req.type, req.visible, false, req.draw_order);
     plugin->LoadConfig(config, "");
     plugin->DrawIcon();
     resp.success = true;
@@ -1018,7 +1021,7 @@ void Mapviz::Hover(double x, double y, double scale)
       lat_lon_pos_label_->setVisible(false);
       return;
     }
-  
+
     int32_t precision = static_cast<int32_t>(std::ceil(std::max(0.0, std::log10(1.0 / scale))));
 
     QString text = ui_.fixedframe->currentText();
@@ -1046,12 +1049,12 @@ void Mapviz::Hover(double x, double y, double scale)
     
     swri_transform_util::Transform transform;
     if (tf_manager_->SupportsTransform(
-           swri_transform_util::_wgs84_frame, 
-           ui_.fixedframe->currentText().toStdString()) &&
+          swri_transform_util::_wgs84_frame,
+          ui_.fixedframe->currentText().toStdString()) &&
         tf_manager_->GetTransform(
-           swri_transform_util::_wgs84_frame, 
-           ui_.fixedframe->currentText().toStdString(),
-           transform))
+          swri_transform_util::_wgs84_frame,
+          ui_.fixedframe->currentText().toStdString(),
+          transform))
     {
       tf::Vector3 point(x, y, 0);
       point = transform * point;
@@ -1067,7 +1070,7 @@ void Mapviz::Hover(double x, double y, double scale)
       lat_lon_text += lat_ss.str().c_str();
       
       lat_lon_text += ", ";
-    
+
       double lon_scale = (1.0 / (111111.0 * std::cos(point.y() * swri_math_util::_deg_2_rad))) * scale;
       int32_t lon_precision = static_cast<int32_t>(std::ceil(std::max(0.0, std::log10(1.0 / lon_scale))));
       
@@ -1290,7 +1293,7 @@ void Mapviz::ToggleRecord(bool on)
       AdjustWindowSize();
       
       canvas_->CaptureFrames(true);
-    
+
       std::string posix_time = boost::posix_time::to_iso_string(ros::WallTime::now().toBoost());
       boost::replace_all(posix_time, ".", "_");
       std::string filename = capture_directory_ + "/mapviz_" + posix_time + ".avi";
@@ -1404,11 +1407,11 @@ void Mapviz::Screenshot()
     cv::flip(screenshot, screenshot, 0);
     
     std::string posix_time = boost::posix_time::to_iso_string(ros::WallTime::now().toBoost());
-    boost::replace_all(posix_time, ".", "_");    
+    boost::replace_all(posix_time, ".", "_");
     std::string filename = capture_directory_ + "/mapviz_" + posix_time + ".png";
     boost::replace_all(filename, "~", getenv("HOME"));
     
-    ROS_INFO("Writing screenshot to: %s", filename.c_str());    
+    ROS_INFO("Writing screenshot to: %s", filename.c_str());
     ui_.statusbar->showMessage("Saved image to " + QString::fromStdString(filename));
     
     cv::imwrite(filename, screenshot);
@@ -1510,4 +1513,52 @@ void Mapviz::HandleProfileTimer()
     }
   }
 }
+
+void Mapviz::ChangeLocalXY()
+{
+  auto& local_xy_util = tf_manager_->LocalXyUtil();
+  if(local_xy_util->Initialized())
+  {
+    local_xy_pose_.pose.position.x = local_xy_util->ReferenceLongitude();
+    local_xy_pose_.pose.position.y = local_xy_util->ReferenceLatitude();
+    local_xy_pose_.pose.position.z = local_xy_util->ReferenceAltitude();
+    local_xy_pose_.header.frame_id = local_xy_util->Frame();
+  }
+  else{
+    local_xy_pose_.header.frame_id = ui_.fixedframe->currentText().toStdString();
+  }
+
+  LocalXYDialog dialog(tf_, local_xy_pose_, this);
+
+  if (dialog.exec() == QDialog::Accepted)
+  {
+    if( local_xy_util->Initialized() )
+    {
+      ResetTransformManager();
+    }
+    local_xy_pose_ = dialog.getMsg();
+
+    local_xy_publisher_ = node_->advertise<geometry_msgs::PoseStamped>("/local_xy_origin", 1, true );
+    local_xy_publisher_.publish( local_xy_pose_ );
+  } else {
+
+  }
+}
+
+void Mapviz::ResetTransformManager()
+{
+  tf_ = boost::make_shared<tf::TransformListener>();
+  tf_manager_ = boost::make_shared<swri_transform_util::TransformManager>();
+  tf_manager_->Initialize(tf_);
+
+  for (auto& display: plugins_)
+  {
+    MapvizPluginPtr plugin = display.second;
+    if (plugin)
+    {
+      plugin->Initialize(tf_, tf_manager_, canvas_);
+    }
+  }
+}
+
 }

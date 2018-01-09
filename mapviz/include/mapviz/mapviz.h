@@ -118,6 +118,8 @@ namespace mapviz
     void Hover(double x, double y, double scale);
     void Recenter();
     void HandleProfileTimer();
+    void ChangeLocalXY();
+    void ResetTransformManager();
 
   Q_SIGNALS:
     /**
@@ -169,12 +171,14 @@ namespace mapviz
 
     ros::NodeHandle* node_;
     ros::ServiceServer add_display_srv_;
+    ros::Publisher local_xy_publisher_;
     boost::shared_ptr<tf::TransformListener> tf_;
     swri_transform_util::TransformManagerPtr tf_manager_;
 
     pluginlib::ClassLoader<MapvizPlugin>* loader_;
     MapCanvas* canvas_;
     std::map<QListWidgetItem*, MapvizPluginPtr> plugins_;
+    geometry_msgs::PoseStamped local_xy_pose_;
 
     Stopwatch meas_spin_;
 
