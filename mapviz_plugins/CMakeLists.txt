@@ -1,6 +1,11 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(mapviz_plugins)
 
+find_program(CCACHE_PROGRAM cache)
+if(CCACHE_PROGRAM)
+    set_property(GLOBAL PROPERY RULE_LAUNCH_COMPILE "${CCACHE_PROGRAM}")
+endif()
+
 set(DEPENDENCIES
   actionlib
   cv_bridge

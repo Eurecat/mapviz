@@ -1,6 +1,11 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(mapviz)
 
+find_program(CCACHE_PROGRAM cache)
+if(CCACHE_PROGRAM)
+    set_property(GLOBAL PROPERY RULE_LAUNCH_COMPILE "${CCACHE_PROGRAM}")
+endif()
+
 find_package(catkin REQUIRED COMPONENTS
   image_transport
   marti_common_msgs

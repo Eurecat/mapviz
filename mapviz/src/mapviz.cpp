@@ -1557,6 +1557,7 @@ void Mapviz::ResetTransformManager()
     if (plugin)
     {
       plugin->Initialize(tf_, tf_manager_, canvas_);
+      Q_EMIT plugin->TargetFrameChanged( ui_.fixedframe->currentText().toStdString() );
     }
   }
 }

@@ -101,7 +101,7 @@ namespace mapviz_plugins
     if (topic != topic_)
     {
       initialized_ = false;
-      clearPoints();
+      ClearPoints();
       has_message_ = false;
       PrintWarning("No messages received.");
 
