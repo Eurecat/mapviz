@@ -82,7 +82,6 @@ namespace mapviz_plugins
   protected Q_SLOTS:
     void SelectTopic();
     void TopicEdited();
-    void AlphaEdited(double value);
     void DrawIcon();
 
     void FrameChanged(std::string);
@@ -97,11 +96,10 @@ namespace mapviz_plugins
     bool transformed_;
     swri_transform_util::Transform transform_;
 
-    std::vector<GLfloat> gl_points_;
-    std::vector<GLfloat> gl_colors_;
-    GLuint points_vbo_;
-    GLuint colours_vbo_;
-    GLuint vao_;
+    GLuint texture_id_;
+    
+    QPointF map_origin_;
+    float texture_x_, texture_y_;
 
     void Callback(const nav_msgs::OccupancyGridConstPtr& msg);
 

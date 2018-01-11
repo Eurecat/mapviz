@@ -51,9 +51,7 @@ namespace mapviz_plugins
   OccupancyGridPlugin::OccupancyGridPlugin() :
     config_widget_(new QWidget()),
     transformed_(false),
-    points_vbo_(0),
-    colours_vbo_(0),
-    vao_(0)
+    texture_id_(0)
   {
     ui_.setupUi(config_widget_);
 
@@ -69,7 +67,6 @@ namespace mapviz_plugins
 
     QObject::connect(ui_.select_topic, SIGNAL(clicked()), this, SLOT(SelectTopic()));
     QObject::connect(ui_.topic, SIGNAL(textEdited(const QString&)), this, SLOT(TopicEdited()));
-    QObject::connect(ui_.alpha, SIGNAL(valueChanged(double)), this, SLOT(AlphaEdited(double)));
     QObject::connect(this, SIGNAL(TargetFrameChanged(std::string)), this, SLOT(FrameChanged(std::string)));
   }
 
@@ -127,41 +124,18 @@ namespace mapviz_plugins
   void OccupancyGridPlugin::TopicEdited()
   {
     const std::string topic = ui_.topic->text().trimmed().toStdString();
-    if (topic != topic_)
+
+    initialized_ = false;
+    grid_.reset();
+    PrintWarning("No messages received.");
+
+    grid_sub_.shutdown();
+
+    topic_ = topic;
+    if (!topic.empty())
     {
-      initialized_ = false;
-      grid_.reset();
-      PrintWarning("No messages received.");
-
-      grid_sub_.shutdown();
-
-      topic_ = topic;
-      if (!topic.empty())
-      {
-        grid_sub_ = node_.subscribe(topic_, 1, &OccupancyGridPlugin::Callback, this);
-        ROS_INFO("Subscribing to %s", topic_.c_str());
-      }
-    }
-  }
-
-  void OccupancyGridPlugin::AlphaEdited(double alpha)
-  {
-    if( grid_ )
-    {
-      for (int i=3; i< gl_colors_.size(); i += 4)
-      {
-        gl_colors_[i] = alpha;
-      }
-
-      glBindVertexArray(vao_);
-
-      glGenBuffers(1, &colours_vbo_);
-      glBindBuffer(GL_ARRAY_BUFFER, colours_vbo_);  // color
-      glBufferData(GL_ARRAY_BUFFER, gl_colors_.size() * sizeof(GLfloat), gl_colors_.data(), GL_STATIC_DRAW);
-      glColorPointer( 4, GL_FLOAT, 0, 0);
-
-      glBindVertexArray(0);
-      glBindBuffer(GL_ARRAY_BUFFER, 0);
+      grid_sub_ = node_.subscribe(topic_, 1, &OccupancyGridPlugin::Callback, this);
+      ROS_INFO("Subscribing to %s", topic_.c_str());
     }
   }
 
@@ -190,59 +164,15 @@ namespace mapviz_plugins
   bool OccupancyGridPlugin::Initialize(QGLWidget* canvas)
   {
     canvas_ = canvas;
-
     DrawIcon();
-
     return true;
   }
 
   void OccupancyGridPlugin::Callback(const nav_msgs::OccupancyGridConstPtr& msg)
   {
+    const int channels   = 2;
     initialized_ = true;
     grid_ = msg;
-    size_t num_quads = 0;
-    for( size_t i=0; i<msg->data.size(); i++ )
-    {
-      if( msg->data[i] >= 0 ) num_quads++;
-    }
-    gl_points_.clear();
-    gl_points_.reserve(  8*num_quads );
-    gl_colors_.clear();
-    gl_colors_.reserve( 16*num_quads );
-    double alpha = ui_.alpha->value();
-
-    int index = 0;
-    for (size_t Y = 0; Y < msg->info.height; Y++)
-    {
-      for (size_t X = 0 ; X < msg->info.width; X++)
-      {
-        double color = msg->data[ index++ ];
-
-        if( color < 0) continue;
-
-        gl_points_.push_back( X );
-        gl_points_.push_back( Y );
-
-        gl_points_.push_back( X );
-        gl_points_.push_back( Y + 1 );
-
-        gl_points_.push_back( X + 1 );
-        gl_points_.push_back( Y + 1 );
-
-        gl_points_.push_back( X + 1 );
-        gl_points_.push_back( Y );
-
-        for (int j=0; j<4; j++)
-        {
-          for (int c=0; c<3; c++)
-          {
-            gl_colors_.push_back( 1.0 - color * 0.01 );
-          }
-          gl_colors_.push_back(alpha);
-        }
-      }
-    }
-
     source_frame_ = msg->header.frame_id;
     transformed_ = GetTransform( source_frame_, msg->header.stamp, transform_);
     if ( !transformed_ )
@@ -250,33 +180,80 @@ namespace mapviz_plugins
       PrintError("No transform between " + source_frame_ + " and " + target_frame_);
     }
 
-    glGenVertexArrays(1, &vao_); // Create new VAO
-    glBindVertexArray(vao_);
+    int32_t max_dimension = std::max(msg->info.height, msg->info.width);
+    int32_t texture_size = 2;
+    while (texture_size < max_dimension){
+      texture_size = texture_size << 1;
+    }
 
-    glGenBuffers(1, &points_vbo_);
-    glBindBuffer(GL_ARRAY_BUFFER, points_vbo_);  // coordinates
-    glBufferData(GL_ARRAY_BUFFER, gl_points_.size() * sizeof(GLfloat), gl_points_.data(), GL_STATIC_DRAW);
-    glVertexPointer( 2, GL_FLOAT, 0, 0);
+    std::vector<uchar> buffer(texture_size*texture_size*channels, 0);
 
-    glGenBuffers(1, &colours_vbo_);
-    glBindBuffer(GL_ARRAY_BUFFER, colours_vbo_);  // color
-    glBufferData(GL_ARRAY_BUFFER, gl_colors_.size() * sizeof(GLfloat), gl_colors_.data(), GL_STATIC_DRAW);
-    glColorPointer( 4, GL_FLOAT, 0, 0);
+    for (size_t row = 0; row < msg->info.height; row++)
+    {
+      for (size_t col = 0; col < msg->info.width; col++)
+      {
+        size_t index_src = (col + row*msg->info.width);
+        double color = msg->data[ index_src ];
+        size_t index_dst = (col + row*texture_size)*channels;
 
-    glBindVertexArray(0);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
+        if( color < 0)
+        {
+          buffer[index_dst]   = 150;
+          buffer[index_dst+1] = 150;
+        }
+        else{
+          buffer[index_dst]   = static_cast<uint8_t>((100 - color)*2.55);
+          buffer[index_dst+1] = 255;
+        }
+      }
+    }
+    if (texture_id_ != -1)
+    {
+      glDeleteTextures(1, &texture_id_);
+    }
+
+    // Get a new texture id.
+    glGenTextures(1, &texture_id_);
+
+    // Bind the texture with the correct size and null memory.
+    glBindTexture(GL_TEXTURE_2D, texture_id_);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+    glTexEnvf( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE );
+
+    glTexImage2D(
+        GL_TEXTURE_2D,
+        0,
+        GL_LUMINANCE_ALPHA,
+        texture_size,
+        texture_size,
+        0,
+        GL_LUMINANCE_ALPHA,
+        GL_UNSIGNED_BYTE,
+        buffer.data());
+
+    texture_x_ = static_cast<float>(msg->info.width) / static_cast<float>(texture_size);
+    texture_y_ = static_cast<float>(msg->info.height) / static_cast<float>(texture_size);
+
+    glBindTexture(GL_TEXTURE_2D, 0);
   }
 
   void OccupancyGridPlugin::Draw(double x, double y, double scale)
   {
-    glEnableClientState(GL_VERTEX_ARRAY);
-    glEnableClientState(GL_COLOR_ARRAY);
-
     glPushMatrix();
 
     if( grid_ && transformed_)
     {
-      glTranslatef( transform_.GetOrigin().getX(),  transform_.GetOrigin().getY(), 0.0);
+      double resolution = grid_->info.resolution;
+      glTranslatef( transform_.GetOrigin().getX(),
+                    transform_.GetOrigin().getY(),
+                    0.0);
 
       tfScalar yaw, pitch, roll;
       tf::Matrix3x3 mat( transform_.GetOrientation() );
@@ -286,36 +263,54 @@ namespace mapviz_plugins
       glRotatef(roll  * 180.0 / M_PI, 1, 0, 0);
       glRotatef(yaw   * 180.0 / M_PI, 0, 0, 1);
 
-      glScalef( grid_->info.resolution, grid_->info.resolution, 1.0);
+      glTranslatef( grid_->info.origin.position.x,
+                    grid_->info.origin.position.y,
+                    0.0);
 
-      glBegin(GL_QUADS);
-      glColor4f(0.6, 0.7, 0.7f, ui_.alpha->value()*0.5);
+      glScalef( resolution, resolution, 1.0);
 
+      float width  = static_cast<float>(grid_->info.width);
+      float height = static_cast<float>(grid_->info.height);
+
+      glEnable(GL_TEXTURE_2D);
+      glBindTexture(GL_TEXTURE_2D, texture_id_);
+      glBegin(GL_TRIANGLES);
+
+      glColor4f(1.0f, 1.0f, 1.0f, ui_.alpha->value() );
+
+      glTexCoord2d(0, 0);
       glVertex2d(0, 0);
-      glVertex2d(grid_->info.width, 0.0);
-      glVertex2d(grid_->info.width, grid_->info.height);
-      glVertex2d(0.0, grid_->info.height);
+      glTexCoord2d(texture_x_, 0);
+      glVertex2d(width, 0);
+      glTexCoord2d(texture_x_, texture_y_);
+      glVertex2d(width, height);
+
+      glTexCoord2d(0, 0);
+      glVertex2d(0, 0);
+      glTexCoord2d(texture_x_, texture_y_);
+      glVertex2d(width, height);
+      glTexCoord2d(0, texture_y_);
+      glVertex2d(0, height);
 
       glEnd();
 
-      glBindVertexArray(vao_);
-      glDrawArrays(GL_QUADS, 0, gl_points_.size() / 2 );
-
+      glBindTexture(GL_TEXTURE_2D, 0);
+      glDisable(GL_TEXTURE_2D);
       PrintInfo("OK");
     }
-
     glPopMatrix();
-
-    glDisableClientState(GL_VERTEX_ARRAY);
-    glDisableClientState(GL_COLOR_ARRAY);
-
   }
 
   void OccupancyGridPlugin::Transform()
   {
-    if ( !transformed_ && grid_ )
+    swri_transform_util::Transform transform;
+    if ( grid_ )
     {
-      transformed_ = GetTransform( source_frame_, grid_->header.stamp, transform_);
+      if( GetTransform( source_frame_, grid_->header.stamp, transform) )
+      {
+          transformed_ = true;
+          transform_ = transform;
+      }
     }
     if ( !transformed_ )
     {
