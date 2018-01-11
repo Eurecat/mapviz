@@ -339,7 +339,6 @@ namespace mapviz_plugins
   {
       if (it.transformed)
       {
-
         glVertex2d(it.transformed_point.getX(),
                    it.transformed_point.getY());
 

@@ -206,7 +206,7 @@ bool MoveBasePlugin::handleMousePress(QMouseEvent* event)
     {
         is_mouse_down_ = true;
         arrow_angle_ = 0;
-        arrow_tail_position_= map_canvas_->MapGlCoordToFixedFrame( event->localPos() );
+        arrow_tail_position_ = map_canvas_->MapGlCoordToFixedFrame( event->localPos() );
         return true;
     }
     return false;
@@ -240,6 +240,9 @@ bool MoveBasePlugin::handleMouseRelease(QMouseEvent* event)
     }
 
     tf::Quaternion quat = tf::createQuaternionFromYaw(arrow_angle_);
+    tf::Transform tf_pose;
+    tf_pose.setOrigin( {arrow_tail_position_.x(), arrow_tail_position_.y(), 0.0} );
+    tf_pose.setRotation( quat );
 
     if( goal_checked ){
 
@@ -250,23 +253,29 @@ bool MoveBasePlugin::handleMouseRelease(QMouseEvent* event)
         move_base_msg_.action_goal.goal.target_pose.header = move_base_msg_.action_goal.header;
 
         geometry_msgs::Pose& pose = move_base_msg_.action_goal.goal.target_pose.pose;
-        pose.position.x = arrow_tail_position_.x();
-        pose.position.y = arrow_tail_position_.y();
-        pose.position.z = 0.0;
-        tf::quaternionTFToMsg( quat, pose.orientation );
+        tf::poseTFToMsg(tf_pose, pose);
 
         move_base_client_.sendGoal(move_base_msg_.action_goal.goal);
         ui_.pushButtonGoalPose->setChecked(false);
         monitoring_action_state_ = true;
     }
     if( init_checked ){
+        tf::StampedTransform transform;
+        if (tf_manager_->GetTransform( "map", target_frame_, ros::Time(0), transform))
+        {
+            tf_pose = transform * tf_pose;
+        }
+        else{
+            std::stringstream error;
+            error << "Unable to find transform from [" << target_frame_ << "] to [map].";
+            PrintError(error.str());
+            return false;
+        }
         geometry_msgs::PoseWithCovarianceStamped initpose;
-        initpose.header.frame_id = target_frame_;
+        initpose.header.frame_id = "map";
         initpose.header.stamp = ros::Time::now();
-        initpose.pose.pose.position.x = arrow_tail_position_.x();
-        initpose.pose.pose.position.y = arrow_tail_position_.y();
-        initpose.pose.pose.position.z = 0.0;
-        tf::quaternionTFToMsg( quat, initpose.pose.pose.orientation );
+
+        tf::poseTFToMsg(tf_pose, initpose.pose.pose);
 
         init_pose_pub_.publish(initpose);
         ui_.pushButtonInitialPose->setChecked(false);

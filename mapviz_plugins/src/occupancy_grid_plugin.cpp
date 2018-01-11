@@ -261,7 +261,7 @@ namespace mapviz_plugins
 
       glRotatef(pitch * 180.0 / M_PI, 0, 1, 0);
       glRotatef(roll  * 180.0 / M_PI, 1, 0, 0);
-      glRotatef(yaw   * 180.0 / M_PI, 0, 0, 1);
+      glRotatef(yaw   * 180.0 / M_PI + ui_.angleOffset->value(), 0, 0, 1);
 
       glTranslatef( grid_->info.origin.position.x,
                     grid_->info.origin.position.y,
@@ -306,7 +306,7 @@ namespace mapviz_plugins
     swri_transform_util::Transform transform;
     if ( grid_ )
     {
-      if( GetTransform( source_frame_, grid_->header.stamp, transform) )
+      if( GetTransform( source_frame_, ros::Time(0), transform) )
       {
           transformed_ = true;
           transform_ = transform;

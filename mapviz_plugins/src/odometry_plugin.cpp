@@ -319,6 +319,7 @@ namespace mapviz_plugins
     {
       double position_tolerance;
       node["position_tolerance"] >> position_tolerance;
+      ui_.positiontolerance->setValue(position_tolerance);
       PositionToleranceChanged(position_tolerance);
     }
 
@@ -326,6 +327,7 @@ namespace mapviz_plugins
     {
       double buffer_size;
       node["buffer_size"] >> buffer_size;
+      ui_.buffersize->setValue(buffer_size);
       BufferSizeChanged(buffer_size);
     }
 
