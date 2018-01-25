@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>400</width>
-    <height>123</height>
+    <width>347</width>
+    <height>89</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -32,42 +32,25 @@
    <property name="verticalSpacing">
     <number>4</number>
    </property>
-   <item row="6" column="1">
-    <spacer name="verticalSpacer">
-     <property name="orientation">
-      <enum>Qt::Vertical</enum>
-     </property>
-     <property name="sizeHint" stdset="0">
+   <item row="4" column="1">
+    <widget class="QDoubleSpinBox" name="alpha">
+     <property name="maximumSize">
       <size>
-       <width>20</width>
-       <height>40</height>
+       <width>50</width>
+       <height>16777215</height>
       </size>
      </property>
-    </spacer>
-   </item>
-   <item row="2" column="0">
-    <widget class="QLabel" name="label">
-     <property name="font">
-      <font>
-       <family>Sans Serif</family>
-       <pointsize>8</pointsize>
-      </font>
+     <property name="decimals">
+      <number>1</number>
      </property>
-     <property name="text">
-      <string>Topic:</string>
+     <property name="maximum">
+      <double>1.000000000000000</double>
      </property>
-    </widget>
-   </item>
-   <item row="5" column="0">
-    <widget class="QLabel" name="label_2">
-     <property name="font">
-      <font>
-       <family>Sans Serif</family>
-       <pointsize>8</pointsize>
-      </font>
+     <property name="singleStep">
+      <double>0.100000000000000</double>
      </property>
-     <property name="text">
-      <string>Status:</string>
+     <property name="value">
+      <double>1.000000000000000</double>
      </property>
     </widget>
    </item>
@@ -90,20 +73,20 @@
      </property>
     </widget>
    </item>
-   <item row="2" column="2">
-    <widget class="QPushButton" name="select_topic">
+   <item row="3" column="0">
+    <widget class="QLabel" name="label_4">
      <property name="font">
       <font>
        <pointsize>8</pointsize>
       </font>
      </property>
      <property name="text">
-      <string>Select</string>
+      <string>Apply updates:</string>
      </property>
     </widget>
    </item>
    <item row="2" column="1">
-    <widget class="QLineEdit" name="topic">
+    <widget class="QLineEdit" name="topic_grid">
      <property name="font">
       <font>
        <pointsize>8</pointsize>
@@ -111,39 +94,56 @@
      </property>
     </widget>
    </item>
-   <item row="3" column="0">
+   <item row="3" column="1">
+    <widget class="QCheckBox" name="checkbox_update">
+     <property name="text">
+      <string/>
+     </property>
+     <property name="checked">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item row="5" column="0">
+    <widget class="QLabel" name="label_2">
+     <property name="font">
+      <font>
+       <family>Sans Serif</family>
+       <pointsize>8</pointsize>
+      </font>
+     </property>
+     <property name="text">
+      <string>Status:</string>
+     </property>
+    </widget>
+   </item>
+   <item row="4" column="0">
     <widget class="QLabel" name="label_3">
+     <property name="font">
+      <font>
+       <pointsize>8</pointsize>
+      </font>
+     </property>
      <property name="text">
       <string>Alpha:</string>
      </property>
     </widget>
    </item>
-   <item row="3" column="1">
-    <widget class="QDoubleSpinBox" name="alpha">
-     <property name="decimals">
-      <number>1</number>
+   <item row="2" column="0">
+    <widget class="QPushButton" name="select_grid">
+     <property name="maximumSize">
+      <size>
+       <width>100</width>
+       <height>16777215</height>
+      </size>
      </property>
-     <property name="maximum">
-      <double>1.000000000000000</double>
+     <property name="font">
+      <font>
+       <pointsize>8</pointsize>
+      </font>
      </property>
-     <property name="singleStep">
-      <double>0.100000000000000</double>
-     </property>
-     <property name="value">
-      <double>1.000000000000000</double>
-     </property>
-    </widget>
-   </item>
-   <item row="4" column="1">
-    <widget class="QDoubleSpinBox" name="angleOffset">
-     <property name="minimum">
-      <double>-10.000000000000000</double>
-     </property>
-     <property name="maximum">
-      <double>10.000000000000000</double>
-     </property>
-     <property name="singleStep">
-      <double>0.100000000000000</double>
+     <property name="text">
+      <string>Select Topic:</string>
      </property>
     </widget>
    </item>
