@@ -17,6 +17,7 @@ set(DEPENDENCIES
   marti_visualization_msgs
   move_base_msgs
   nav_msgs
+  map_msgs
   pluginlib 
   roscpp 
   sensor_msgs
