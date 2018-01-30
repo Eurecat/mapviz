@@ -316,13 +316,28 @@ namespace mapviz_plugins
                     transform_.GetOrigin().getY(),
                     0.0);
 
-      tfScalar yaw, pitch, roll;
-      tf::Matrix3x3 mat( transform_.GetOrientation() );
-      mat.getEulerYPR(yaw, pitch, roll);
+      {
+        tfScalar yaw, pitch, roll;
+        tf::Matrix3x3 mat( transform_.GetOrientation() );
+        mat.getEulerYPR(yaw, pitch, roll);
 
-      glRotatef(pitch * 180.0 / M_PI, 0, 1, 0);
-      glRotatef(roll  * 180.0 / M_PI, 1, 0, 0);
-      glRotatef(yaw   * 180.0 / M_PI, 0, 0, 1);
+        glRotatef(pitch * 180.0 / M_PI, 0, 1, 0);
+        glRotatef(roll  * 180.0 / M_PI, 1, 0, 0);
+        glRotatef(yaw   * 180.0 / M_PI, 0, 0, 1);
+      }
+
+      {
+        tfScalar yaw, pitch, roll;
+        const auto& q = grid_->info.origin.orientation;
+        tf::Quaternion tf_quat ( q.x, q.y, q.z, q.w );
+        tf::Matrix3x3 mat( tf_quat );
+        mat.getEulerYPR(yaw, pitch, roll);
+        glRotatef(pitch * 180.0 / M_PI, 0, 1, 0);
+        glRotatef(roll  * 180.0 / M_PI, 1, 0, 0);
+        glRotatef(yaw   * 180.0 / M_PI, 0, 0, 1);
+      }
+
+      glRotatef(ui_.angle_offset->value(), 0, 0, 1);
 
       glTranslatef( grid_->info.origin.position.x,
                     grid_->info.origin.position.y,
