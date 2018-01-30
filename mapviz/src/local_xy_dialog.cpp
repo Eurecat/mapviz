@@ -100,19 +100,22 @@ void LocalXYDialog::NavSatCallback(const sensor_msgs::NavSatFixConstPtr navsat)
   std::string fixed_frame = ui_.frame->text().toStdString();
   std::string gps_frame =  navsat->header.frame_id;
   tf::StampedTransform transform;
-  transform.setOrigin( {0,0,0 } );
+  transform.setOrigin( {0,0,0} );
 
-  try{
-    tf_->lookupTransform(fixed_frame, gps_frame, ros::Time(), transform);
-    ui_.status->setText("");
-  }
-  catch(std::runtime_error& e)
+  if( gps_frame.empty() == false)
   {
-    QPalette p(ui_.status->palette());
-    p.setColor(QPalette::Text, Qt::red);
-    ui_.status->setPalette(p);
-    ui_.status->setText( QString("Error transforming from [%1] to [%2]").arg(fixed_frame.c_str()).arg(gps_frame.c_str()) );
-    return;
+    try{
+      tf_->lookupTransform(fixed_frame, gps_frame, ros::Time(), transform);
+      ui_.status->setText("");
+    }
+    catch(std::runtime_error& e)
+    {
+      QPalette p(ui_.status->palette());
+      p.setColor(QPalette::Text, Qt::red);
+      ui_.status->setPalette(p);
+      ui_.status->setText( QString("Error transforming from [%1] to [%2]").arg(fixed_frame.c_str()).arg(gps_frame.c_str()) );
+      return;
+    }
   }
 
   double x = -transform.getOrigin().x();
