@@ -48,10 +48,111 @@ PLUGINLIB_EXPORT_CLASS(mapviz_plugins::OccupancyGridPlugin, mapviz::MapvizPlugin
 
 namespace mapviz_plugins
 {
+  const int CHANNELS = 4;
+
+  typedef std::array<unsigned char, 256*4> Palette;
+
+  Palette makeMapPalette()
+  {
+    Palette palette;
+    unsigned char* palette_ptr = palette.data();
+    // Standard gray map palette values
+    for( int i = 0; i <= 100; i++ )
+    {
+      unsigned char v = 255 - (255 * i) / 100;
+      *palette_ptr++ = v; // red
+      *palette_ptr++ = v; // green
+      *palette_ptr++ = v; // blue
+      *palette_ptr++ = 255; // alpha
+    }
+    // illegal positive values in green
+    for( int i = 101; i <= 127; i++ )
+    {
+      *palette_ptr++ = 0; // red
+      *palette_ptr++ = 255; // green
+      *palette_ptr++ = 0; // blue
+      *palette_ptr++ = 255; // alpha
+    }
+    // illegal negative (char) values in shades of red/yellow
+    for( int i = 128; i <= 254; i++ )
+    {
+      *palette_ptr++ = 255; // red
+      *palette_ptr++ = (255*(i-128))/(254-128); // green
+      *palette_ptr++ = 0; // blue
+      *palette_ptr++ = 255; // alpha
+    }
+    // legal -1 value is tasteful blueish greenish grayish color
+    *palette_ptr++ = 0x70; // red
+    *palette_ptr++ = 0x89; // green
+    *palette_ptr++ = 0x86; // blue
+    *palette_ptr++ = 255; // alpha
+
+    return palette;
+  }
+
+  Palette makeCostmapPalette()
+  {
+    Palette palette;
+    unsigned char* palette_ptr = palette.data();
+
+    // zero values have alpha=0
+    *palette_ptr++ = 0; // red
+    *palette_ptr++ = 0; // green
+    *palette_ptr++ = 0; // blue
+    *palette_ptr++ = 0; // alpha
+
+    // Blue to red spectrum for most normal cost values
+    for( int i = 1; i <= 98; i++ )
+    {
+      unsigned char v = (255 * i) / 100;
+      *palette_ptr++ = v; // red
+      *palette_ptr++ = 0; // green
+      *palette_ptr++ = 255 - v; // blue
+      *palette_ptr++ = 255; // alpha
+    }
+    // inscribed obstacle values (99) in cyan
+    *palette_ptr++ = 0; // red
+    *palette_ptr++ = 255; // green
+    *palette_ptr++ = 255; // blue
+    *palette_ptr++ = 255; // alpha
+    // lethal obstacle values (100) in purple
+    *palette_ptr++ = 255; // red
+    *palette_ptr++ = 0; // green
+    *palette_ptr++ = 255; // blue
+    *palette_ptr++ = 255; // alpha
+    // illegal positive values in green
+    for( int i = 101; i <= 127; i++ )
+    {
+      *palette_ptr++ = 0; // red
+      *palette_ptr++ = 255; // green
+      *palette_ptr++ = 0; // blue
+      *palette_ptr++ = 255; // alpha
+    }
+    // illegal negative (char) values in shades of red/yellow
+    for( int i = 128; i <= 254; i++ )
+    {
+      *palette_ptr++ = 255; // red
+      *palette_ptr++ = (255*(i-128))/(254-128); // green
+      *palette_ptr++ = 0; // blue
+      *palette_ptr++ = 255; // alpha
+    }
+    // legal -1 value is tasteful blueish greenish grayish color
+    *palette_ptr++ = 0x70; // red
+    *palette_ptr++ = 0x89; // green
+    *palette_ptr++ = 0x86; // blue
+    *palette_ptr++ = 255; // alpha
+
+    return palette;
+  }
+
+
+
   OccupancyGridPlugin::OccupancyGridPlugin() :
     config_widget_(new QWidget()),
     transformed_(false),
-    texture_id_(0)
+    texture_id_(0),
+    map_palette_( makeMapPalette() ),
+    costmap_palette_( makeCostmapPalette() )
   {
     ui_.setupUi(config_widget_);
 
@@ -72,6 +173,8 @@ namespace mapviz_plugins
     QObject::connect(this, SIGNAL(TargetFrameChanged(std::string)), this, SLOT(FrameChanged(std::string)));
 
     QObject::connect(ui_.checkbox_update, SIGNAL(toggled(bool)), this, SLOT(upgradeCheckBoxToggled(bool)));
+
+    QObject::connect(ui_.color_scheme, SIGNAL(currentTextChanged(const QString &)), this, SLOT(colorSchemeUpdated(const QString &)));
 
     PrintWarning("waiting for first message");
   }
@@ -135,6 +238,7 @@ namespace mapviz_plugins
 
     initialized_ = false;
     grid_.reset();
+    raw_buffer_.clear();
 
     grid_sub_.shutdown();
     update_sub_.shutdown();
@@ -144,7 +248,7 @@ namespace mapviz_plugins
       grid_sub_   = node_.subscribe(topic, 10, &OccupancyGridPlugin::Callback, this);
       if( ui_.checkbox_update)
       {
-          update_sub_ = node_.subscribe(topic+ "_updates", 10, &OccupancyGridPlugin::CallbackUpdate, this);
+        update_sub_ = node_.subscribe(topic+ "_updates", 10, &OccupancyGridPlugin::CallbackUpdate, this);
       }
       ROS_INFO("Subscribing to %s", topic.c_str());
     }
@@ -157,7 +261,30 @@ namespace mapviz_plugins
 
     if( ui_.checkbox_update)
     {
-        update_sub_ = node_.subscribe(topic+ "_updates", 10, &OccupancyGridPlugin::CallbackUpdate, this);
+      update_sub_ = node_.subscribe(topic+ "_updates", 10, &OccupancyGridPlugin::CallbackUpdate, this);
+    }
+  }
+
+  void OccupancyGridPlugin::colorSchemeUpdated(const QString &)
+  {
+
+    if( grid_ && raw_buffer_.size()>0)
+    {
+      const size_t width  = grid_->info.width;
+      const size_t height = grid_->info.height;
+      const Palette& palette = (ui_.color_scheme->currentText() == "map") ?  map_palette_ : costmap_palette_;
+
+      for (size_t row = 0; row < height;  row++)
+      {
+        for (size_t col = 0; col < width; col++)
+        {
+          size_t index = (col + row * texture_size_);
+          uchar color = raw_buffer_[index];
+          memcpy( &color_buffer_[index*CHANNELS], &palette[color], CHANNELS);
+        }
+      }
+
+      updateTexture();
     }
   }
 
@@ -190,57 +317,56 @@ namespace mapviz_plugins
     return true;
   }
 
-  void OccupancyGridPlugin::buildTexture( unsigned texture_size, uchar* buffer_data)
+  void OccupancyGridPlugin::updateTexture()
   {
-      if (texture_id_ != -1)
-      {
-        glDeleteTextures(1, &texture_id_);
-      }
+    if (texture_id_ != -1)
+    {
+      glDeleteTextures(1, &texture_id_);
+    }
 
-      // Get a new texture id.
-      glGenTextures(1, &texture_id_);
+    // Get a new texture id.
+    glGenTextures(1, &texture_id_);
 
-      // Bind the texture with the correct size and null memory.
-      glBindTexture(GL_TEXTURE_2D, texture_id_);
-      glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    // Bind the texture with the correct size and null memory.
+    glBindTexture(GL_TEXTURE_2D, texture_id_);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-      glTexEnvf( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE );
+    glTexEnvf( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE );
 
-      glTexImage2D(
+    glTexImage2D(
           GL_TEXTURE_2D,
           0,
-          GL_LUMINANCE_ALPHA,
-          texture_size,
-          texture_size,
+          GL_RGBA,
+          texture_size_,
+          texture_size_,
           0,
-          GL_LUMINANCE_ALPHA,
+          GL_RGBA,
           GL_UNSIGNED_BYTE,
-          buffer_data);
+          color_buffer_.data());
 
-      glBindTexture(GL_TEXTURE_2D, 0);
+    glBindTexture(GL_TEXTURE_2D, 0);
   }
 
 
   void OccupancyGridPlugin::Callback(const nav_msgs::OccupancyGridConstPtr& msg)
   {
-    const int width  = msg->info.width;
-    const int height = msg->info.height;
-    initialized_ = true;
     grid_ = msg;
-    source_frame_ = msg->header.frame_id;
-    transformed_ = GetTransform( source_frame_, msg->header.stamp, transform_);
+    const int width  = grid_->info.width;
+    const int height = grid_->info.height;
+    initialized_ = true;
+    source_frame_ = grid_->header.frame_id;
+    transformed_ = GetTransform( source_frame_, grid_->header.stamp, transform_);
     if ( !transformed_ )
     {
       PrintError("No transform between " + source_frame_ + " and " + target_frame_);
-    }    
+    }
 
-    const int channels   = 2;
     int32_t max_dimension = std::max(height, width);
 
     texture_size_ = 2;
@@ -248,61 +374,50 @@ namespace mapviz_plugins
       texture_size_ = texture_size_ << 1;
     }
 
-    grid_buffer_.resize(texture_size_*texture_size_*channels, 0);
+    const Palette& palette = (ui_.color_scheme->currentText() == "map") ?  map_palette_ : costmap_palette_;
+
+    raw_buffer_.resize(texture_size_*texture_size_, 0);
+    color_buffer_.resize(texture_size_*texture_size_*CHANNELS, 0);
 
     for (size_t row = 0; row < height; row++)
     {
       for (size_t col = 0; col < width; col++)
       {
         size_t index_src = (col + row*width);
-        double color = msg->data[ index_src ];
-        size_t index_dst = (col + row*texture_size_)*channels;
-
-        if( color < 0)
-        {
-          grid_buffer_[index_dst]   = 150;
-          grid_buffer_[index_dst+1] = 150;
-        }
-        else{
-          grid_buffer_[index_dst]   = static_cast<uint8_t>((100 - color)*2.55);
-          grid_buffer_[index_dst+1] = 255;
-        }
+        size_t index_dst = (col + row*texture_size_);
+        uchar color = static_cast<uchar>( grid_->data[ index_src ] );
+        raw_buffer_[index_dst] = color;
+        memcpy( &color_buffer_[index_dst*CHANNELS], &palette[color], CHANNELS);
       }
     }
+
     texture_x_ = static_cast<float>(width) / static_cast<float>(texture_size_);
     texture_y_ = static_cast<float>(height) / static_cast<float>(texture_size_);
 
-    buildTexture( texture_size_, grid_buffer_.data() );
+    updateTexture();
   }
 
   void OccupancyGridPlugin::CallbackUpdate(const map_msgs::OccupancyGridUpdateConstPtr &msg)
   {
-      PrintInfo("Update Received");
+    PrintInfo("Update Received");
 
-      const int channels = 2;
-      if( initialized_ )
+    if( initialized_ )
+    {
+      const Palette& palette = (ui_.color_scheme->currentText() == "map") ?  map_palette_ : costmap_palette_;
+
+      for (size_t row = 0; row < msg->height; row++)
       {
-          for (size_t row = 0; row < msg->height; row++)
-          {
-            for (size_t col = 0; col < msg->width; col++)
-            {
-              size_t index_src = (col + row*msg->width);
-              double color = msg->data[ index_src ];
-              size_t index_dst = ( (col+msg->x) + (row+msg->y)*texture_size_)*channels;
-
-              if( color < 0)
-              {
-                grid_buffer_[index_dst]   = 150;
-                grid_buffer_[index_dst+1] = 150;
-              }
-              else{
-                grid_buffer_[index_dst]   = static_cast<uint8_t>((100 - color)*2.55);
-                grid_buffer_[index_dst+1] = 255;
-              }
-            }
-          }
-          buildTexture( texture_size_, grid_buffer_.data() );
+        for (size_t col = 0; col < msg->width; col++)
+        {
+          size_t index_src = (col + row * msg->width);
+          size_t index_dst = ( (col + msg->x) + (row + msg->y)*texture_size_);
+          uchar color = static_cast<uchar>( msg->data[ index_src ] );
+          raw_buffer_[index_dst] = color;
+          memcpy( &color_buffer_[index_dst*CHANNELS], &palette[color], CHANNELS);
+        }
       }
+      updateTexture();
+    }
   }
 
   void OccupancyGridPlugin::Draw(double x, double y, double scale)
@@ -384,8 +499,8 @@ namespace mapviz_plugins
     {
       if( GetTransform( source_frame_, ros::Time(0), transform) )
       {
-          transformed_ = true;
-          transform_ = transform;
+        transformed_ = true;
+        transform_ = transform;
       }
     }
     if ( !transformed_ )

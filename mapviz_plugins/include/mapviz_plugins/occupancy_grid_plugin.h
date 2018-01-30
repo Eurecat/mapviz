@@ -59,6 +59,8 @@ namespace mapviz_plugins
   {
     Q_OBJECT
 
+    typedef std::array<uchar, 256*4> Palette;
+
   public:
     OccupancyGridPlugin();
     virtual ~OccupancyGridPlugin();
@@ -85,6 +87,7 @@ namespace mapviz_plugins
     void SelectTopicGrid();
     void TopicGridEdited();
     void upgradeCheckBoxToggled(bool);
+    void colorSchemeUpdated(const QString &);
 
     void DrawIcon();
 
@@ -106,12 +109,16 @@ namespace mapviz_plugins
     
     QPointF map_origin_;
     float texture_x_, texture_y_;
-    std::vector<uchar> grid_buffer_;
+    std::vector<uchar> raw_buffer_;
+    std::vector<uchar> color_buffer_;
     int32_t texture_size_;
+
+    Palette map_palette_;
+    Palette costmap_palette_;
 
     void Callback(const nav_msgs::OccupancyGridConstPtr& msg);
     void CallbackUpdate(const map_msgs::OccupancyGridUpdateConstPtr& msg);
-    void buildTexture(unsigned texture_size, uchar* buffer_data);
+    void updateTexture();
 
   };
 }

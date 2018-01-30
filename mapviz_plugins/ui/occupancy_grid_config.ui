@@ -137,6 +137,11 @@
    </item>
    <item row="6" column="0">
     <widget class="QLabel" name="label">
+     <property name="font">
+      <font>
+       <pointsize>8</pointsize>
+      </font>
+     </property>
      <property name="text">
       <string>Angle offset:</string>
      </property>
@@ -147,6 +152,38 @@
      <property name="singleStep">
       <double>0.100000000000000</double>
      </property>
+    </widget>
+   </item>
+   <item row="5" column="0">
+    <widget class="QLabel" name="label_4">
+     <property name="font">
+      <font>
+       <pointsize>8</pointsize>
+      </font>
+     </property>
+     <property name="text">
+      <string>Color Scheme:</string>
+     </property>
+    </widget>
+   </item>
+   <item row="5" column="1">
+    <widget class="QComboBox" name="color_scheme">
+     <property name="maximumSize">
+      <size>
+       <width>100</width>
+       <height>16777215</height>
+      </size>
+     </property>
+     <item>
+      <property name="text">
+       <string>map</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>costmap</string>
+      </property>
+     </item>
     </widget>
    </item>
   </layout>
