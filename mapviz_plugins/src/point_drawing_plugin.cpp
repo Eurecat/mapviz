@@ -48,7 +48,7 @@ namespace mapviz_plugins
       : arrow_size_(25),
         draw_style_(LINES),
         position_tolerance_(0.0),
-        buffer_size_(0),
+        buffer_size_(1),
         covariance_checked_(false),
         new_lap_(true),
         lap_checked_(false),

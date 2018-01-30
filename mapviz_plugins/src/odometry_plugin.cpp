@@ -69,6 +69,10 @@ namespace mapviz_plugins
     p3.setColor(QPalette::Text, Qt::red);
     ui_.status->setPalette(p3);
 
+    //initialize
+    BufferSizeChanged( ui_.buffersize->value() );
+    PositionToleranceChanged( ui_.positiontolerance->value() );
+
     QObject::connect(ui_.selecttopic, SIGNAL(clicked()), this,
                      SLOT(SelectTopic()));
     QObject::connect(ui_.topic, SIGNAL(editingFinished()), this,
