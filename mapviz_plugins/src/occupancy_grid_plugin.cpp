@@ -50,16 +50,16 @@ namespace mapviz_plugins
 {
   const int CHANNELS = 4;
 
-  typedef std::array<unsigned char, 256*4> Palette;
+  typedef std::array<uchar, 256*4> Palette;
 
   Palette makeMapPalette()
   {
     Palette palette;
-    unsigned char* palette_ptr = palette.data();
+    uchar* palette_ptr = palette.data();
     // Standard gray map palette values
     for( int i = 0; i <= 100; i++ )
     {
-      unsigned char v = 255 - (255 * i) / 100;
+      uchar v = 255 - (255 * i) / 100;
       *palette_ptr++ = v; // red
       *palette_ptr++ = v; // green
       *palette_ptr++ = v; // blue
@@ -85,7 +85,7 @@ namespace mapviz_plugins
     *palette_ptr++ = 0x70; // red
     *palette_ptr++ = 0x89; // green
     *palette_ptr++ = 0x86; // blue
-    *palette_ptr++ = 255; // alpha
+    *palette_ptr++ = 160; // alpha
 
     return palette;
   }
@@ -93,7 +93,7 @@ namespace mapviz_plugins
   Palette makeCostmapPalette()
   {
     Palette palette;
-    unsigned char* palette_ptr = palette.data();
+    uchar* palette_ptr = palette.data();
 
     // zero values have alpha=0
     *palette_ptr++ = 0; // red
@@ -104,7 +104,7 @@ namespace mapviz_plugins
     // Blue to red spectrum for most normal cost values
     for( int i = 1; i <= 98; i++ )
     {
-      unsigned char v = (255 * i) / 100;
+      uchar v = (255 * i) / 100;
       *palette_ptr++ = v; // red
       *palette_ptr++ = 0; // green
       *palette_ptr++ = 255 - v; // blue
@@ -140,7 +140,7 @@ namespace mapviz_plugins
     *palette_ptr++ = 0x70; // red
     *palette_ptr++ = 0x89; // green
     *palette_ptr++ = 0x86; // blue
-    *palette_ptr++ = 255; // alpha
+    *palette_ptr++ = 160; // alpha
 
     return palette;
   }
@@ -280,10 +280,9 @@ namespace mapviz_plugins
         {
           size_t index = (col + row * texture_size_);
           uchar color = raw_buffer_[index];
-          memcpy( &color_buffer_[index*CHANNELS], &palette[color], CHANNELS);
+          memcpy( &color_buffer_[index*CHANNELS], &palette[color*CHANNELS], CHANNELS);
         }
       }
-
       updateTexture();
     }
   }
@@ -387,7 +386,7 @@ namespace mapviz_plugins
         size_t index_dst = (col + row*texture_size_);
         uchar color = static_cast<uchar>( grid_->data[ index_src ] );
         raw_buffer_[index_dst] = color;
-        memcpy( &color_buffer_[index_dst*CHANNELS], &palette[color], CHANNELS);
+        memcpy( &color_buffer_[index_dst*CHANNELS], &palette[color*CHANNELS], CHANNELS);
       }
     }
 
@@ -413,7 +412,7 @@ namespace mapviz_plugins
           size_t index_dst = ( (col + msg->x) + (row + msg->y)*texture_size_);
           uchar color = static_cast<uchar>( msg->data[ index_src ] );
           raw_buffer_[index_dst] = color;
-          memcpy( &color_buffer_[index_dst*CHANNELS], &palette[color], CHANNELS);
+          memcpy( &color_buffer_[index_dst*CHANNELS], &palette[color*CHANNELS], CHANNELS);
         }
       }
       updateTexture();
