@@ -4,14 +4,8 @@
 
   <env name="ROSCONSOLE_FORMAT" value="[${thread}] [${node}/${function}:${line}]: ${message}"/>
 
-  <arg name="print_profile_data" default="false"/>
-
-  <node pkg="mapviz" type="mapviz" name="$(anon mapviz)" required="true">
-    <param name="print_profile_data" value="$(arg print_profile_data)"/>
-  </node>
-
   <node pkg="swri_transform_util" type="initialize_origin.py" name="initialize_origin" >
-    <param name="local_xy_frame" value="/far_field"/>
+    <param name="local_xy_frame" value="/fixed"/>
     <param name="local_xy_origin" value="mas_llunes"/>
     <rosparam param="local_xy_origins">
       [{ name: swri,
@@ -19,22 +13,16 @@
          longitude: -98.61370577,
          altitude: 233.719,
          heading: 0.0},
-
-    { name: mas_llunes,
-      latitude: 42.342702,
-      longitude: 3.059028,
-      altitude: 100.0,
-      heading: 0.0},
          
-       { name: toscana,
-         latitude: 43.5952733333,
-         longitude: 10.5705966667,
-         altitude: 100.0,
+       { name: mas_llunes,
+         latitude: 42.342723,
+         longitude: 3.058918,
+         altitude: 200.0,
          heading: 0.0}]
     </rosparam>
   </node>
 
-  <node pkg="tf" type="static_transform_publisher" name="swri_transform" args="0 0 0 1.5708 0 0 /far_field /odom 100"  />
+<!--  <node pkg="tf" type="static_transform_publisher" name="swri_transform" args="0 0 0 0 0 0 /fixed /odom 100"  />-->
 
   <!-- Needed only for searching for services -->
   <node pkg="rosapi" type="rosapi_node" name="rosapi"/>

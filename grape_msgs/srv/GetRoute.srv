@@ -1,0 +1,7 @@
+uint32 uid      # GUID of route to retrieve, or 0 to retrieve the last one
+
+---
+
+RoutePoint[]  route_points
+bool          success        # indicate successful run of triggered service
+string        message        # informational, e.g. for error messages

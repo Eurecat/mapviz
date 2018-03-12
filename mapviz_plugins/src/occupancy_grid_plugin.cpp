@@ -28,6 +28,7 @@
 // *****************************************************************************
 
 #include <GL/glew.h>
+#include <lttng/tracelog.h>
 
 #include <mapviz_plugins/occupancy_grid_plugin.h>
 #include <GL/glut.h>
@@ -394,6 +395,7 @@ namespace mapviz_plugins
     texture_y_ = static_cast<float>(height) / static_cast<float>(texture_size_);
 
     updateTexture();
+    PrintInfo("Map received");
   }
 
   void OccupancyGridPlugin::CallbackUpdate(const map_msgs::OccupancyGridUpdateConstPtr &msg)
@@ -430,28 +432,15 @@ namespace mapviz_plugins
                     transform_.GetOrigin().getY(),
                     0.0);
 
-      {
-        tfScalar yaw, pitch, roll;
-        tf::Matrix3x3 mat( transform_.GetOrientation() );
-        mat.getEulerYPR(yaw, pitch, roll);
+      tfScalar yaw, pitch, roll;
+      tf::Matrix3x3 mat( transform_.GetOrientation() );
+      mat.getEulerYPR(yaw, pitch, roll);
 
-        glRotatef(pitch * 180.0 / M_PI, 0, 1, 0);
-        glRotatef(roll  * 180.0 / M_PI, 1, 0, 0);
-        glRotatef(yaw   * 180.0 / M_PI, 0, 0, 1);
-      }
+      glRotatef(pitch * 180.0 / M_PI, 0, 1, 0);
+      glRotatef(roll  * 180.0 / M_PI, 1, 0, 0);
+      glRotatef(yaw   * 180.0 / M_PI, 0, 0, 1);
 
-      {
-        tfScalar yaw, pitch, roll;
-        const auto& q = grid_->info.origin.orientation;
-        tf::Quaternion tf_quat ( q.x, q.y, q.z, q.w );
-        tf::Matrix3x3 mat( tf_quat );
-        mat.getEulerYPR(yaw, pitch, roll);
-        glRotatef(pitch * 180.0 / M_PI, 0, 1, 0);
-        glRotatef(roll  * 180.0 / M_PI, 1, 0, 0);
-        glRotatef(yaw   * 180.0 / M_PI, 0, 0, 1);
-      }
-
-      glRotatef(ui_.angle_offset->value(), 0, 0, 1);
+     // glRotatef(ui_.angle_offset->value(), 0, 0, 1);
 
       glTranslatef( grid_->info.origin.position.x,
                     grid_->info.origin.position.y,
@@ -531,6 +520,13 @@ namespace mapviz_plugins
       ui_.alpha->setValue(alpha);
     }
 
+    if (node["scheme"])
+    {
+      std::string scheme;
+      node["scheme"] >> scheme;
+      ui_.color_scheme->setCurrentText( QString::fromStdString(scheme) );
+    }
+
     TopicGridEdited();
   }
 
@@ -539,6 +535,7 @@ namespace mapviz_plugins
     emitter << YAML::Key << "alpha"  << YAML::Value << ui_.alpha->value();
     emitter << YAML::Key << "topic"  << YAML::Value << ui_.topic_grid->text().toStdString();
     emitter << YAML::Key << "update" << YAML::Value << ui_.checkbox_update->isChecked();
+    emitter << YAML::Key << "scheme" << YAML::Value << ui_.color_scheme->currentText().toStdString();
   }
 }
 
