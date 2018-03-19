@@ -89,10 +89,6 @@ namespace mapviz_plugins
                      this, SLOT(SetArrowSize(int)));
     QObject::connect(ui_.color, SIGNAL(colorEdited(const QColor&)), this,
                      SLOT(SetColor(const QColor&)));
-    QObject::connect(ui_.show_laps, SIGNAL(toggled(bool)), this,
-                     SLOT(LapToggled(bool)));
-    QObject::connect(ui_.show_covariance, SIGNAL(toggled(bool)), this,
-                     SLOT(CovariancedToggled(bool)));
     QObject::connect(ui_.buttonResetBuffer, SIGNAL(pressed()), this,
                      SLOT(ClearPoints()));
   }
@@ -163,38 +159,6 @@ namespace mapviz_plugins
         odometry->pose.pose.orientation.z,
         odometry->pose.pose.orientation.w);
 
-    if ( ui_.show_covariance->isChecked() )
-    {
-      tf::Matrix3x3 tf_cov =
-          swri_transform_util::GetUpperLeft(odometry->pose.covariance);
-
-      if (tf_cov[0][0] < 100000 && tf_cov[1][1] < 100000)
-      {
-        cv::Mat cov_matrix_3d(3, 3, CV_32FC1);
-        for (int32_t r = 0; r < 3; r++)
-        {
-          for (int32_t c = 0; c < 3; c++)
-          {
-            cov_matrix_3d.at<float>(r, c) = tf_cov[r][c];
-          }
-        }
-
-        cv::Mat cov_matrix_2d = swri_image_util::ProjectEllipsoid(cov_matrix_3d);
-
-        if (!cov_matrix_2d.empty())
-        {
-          stamped_point.cov_points = swri_image_util::GetEllipsePoints(
-              cov_matrix_2d, stamped_point.point, 3, 32);
-
-          stamped_point.transformed_cov_points = stamped_point.cov_points;
-        }
-        else
-        {
-          ROS_ERROR("Failed to project x, y, z covariance to xy-plane.");
-        }
-      }
-    }
-
     pushPoint( std::move(stamped_point) );
 
   }
@@ -231,10 +195,6 @@ namespace mapviz_plugins
 
   void OdometryPlugin::Draw(double x, double y, double scale)
   {
-    if (ui_.show_covariance->isChecked())
-    {
-      DrawCovariance();
-    }
     if (DrawPoints(scale))
     {
       PrintInfo("OK");
@@ -245,7 +205,7 @@ namespace mapviz_plugins
   void OdometryPlugin::Paint(QPainter* painter, double x, double y, double scale)
   {
     //dont render any timestamps if the show_timestamps is set to 0
-    int interval = ui_.show_timestamps->value();
+    int interval = 0.0;
     if (interval == 0)
     {
       return;
@@ -335,21 +295,6 @@ namespace mapviz_plugins
       BufferSizeChanged(buffer_size);
     }
 
-    if (node["show_covariance"])
-    {
-      bool show_covariance = false;
-      node["show_covariance"] >> show_covariance;
-      ui_.show_covariance->setChecked(show_covariance);
-      CovariancedToggled(show_covariance);
-    }
-    if (node["show_laps"])
-    {
-      bool show_laps = false;
-      node["show_laps"] >> show_laps;
-      ui_.show_laps->setChecked(show_laps);
-      LapToggled(show_laps);
-    }
-
     if (node["static_arrow_sizes"])
     {
       bool static_arrow_sizes = node["static_arrow_sizes"].as<bool>();
@@ -362,11 +307,6 @@ namespace mapviz_plugins
       double arrow_size = node["arrow_size"].as<int>();
       ui_.arrow_size->setValue(arrow_size);
       SetArrowSize(arrow_size);
-    }
-
-    if (node["show_timestamps"])
-    {
-      ui_.show_timestamps->setValue(node["show_timestamps"].as<int>());
     }
 
     TopicEdited();
@@ -389,17 +329,9 @@ namespace mapviz_plugins
 
     emitter << YAML::Key << "buffer_size" << YAML::Value << bufferSize();
 
-    bool show_laps = ui_.show_laps->isChecked();
-    emitter << YAML::Key << "show_laps" << YAML::Value << show_laps;
-
-    bool show_covariance = ui_.show_covariance->isChecked();
-    emitter << YAML::Key << "show_covariance" << YAML::Value << show_covariance;
-
     emitter << YAML::Key << "static_arrow_sizes" << YAML::Value << ui_.static_arrow_sizes->isChecked();
 
     emitter << YAML::Key << "arrow_size" << YAML::Value << ui_.arrow_size->value();
-
-    emitter << YAML::Key << "show_timestamps" << YAML::Value << ui_.show_timestamps->value();
   }
 }
 

@@ -66,6 +66,7 @@ namespace mapviz_plugins
           min_value_(0.0),
           max_value_(100.0),
           point_size_(3),
+          buffer_size_(1),
           prev_ranges_size_(0),
           prev_angle_min_(0.0),
           prev_increment_(0.0)
