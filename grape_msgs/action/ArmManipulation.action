@@ -1,9 +1,0 @@
-# goal
-# Suggested deployment poses, from best to worse. Size zero is anything failed.
-DeploymentPose[] deployment_poses
----
-#result
-bool success
----
-#feedback
-ManipulationStatus status

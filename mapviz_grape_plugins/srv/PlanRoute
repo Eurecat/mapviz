@@ -1,7 +1,0 @@
-Header header                  # the frame the request and response are referenced in
-RoutePoint  route_points[]     # planned route
-
----
-
-bool success     # indicate successful run of service
-string message   # informational, e.g. for error messages
